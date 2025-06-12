@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Image Text Extractor</title>
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <section class="hero is-primary is-bold">
+        <div class="hero-body">
+            <div class="container">
+                <h1 class="title">
+                    <i class="fas fa-text-height"></i> Text Extractor
+                </h1>
+                <h2 class="subtitle">
+                    Upload an image to extract text
+                </h2>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-two-thirds">
+                    <div class="card">
+                        <div class="card-content">
+                            <!-- Upload Section -->
+                            <div id="upload-container" class="has-text-centered">
+                                <div id="drop-zone" class="box has-background-primary-light">
+                                    <span class="icon is-large">
+                                        <i class="fas fa-cloud-upload-alt fa-3x"></i>
+                                    </span>
+                                    <h3 class="title is-4">Drag & Drop Image Here</h3>
+                                    <p class="subtitle is-6">or click to browse files</p>
+                                    <input type="file" id="file-input" class="file-input" accept="image/*">
+                                    <label for="file-input" class="button is-primary is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-folder-open"></i>
+                                        </span>
+                                        <span>Select Image</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Processing UI -->
+                            <div id="processing-ui" class="is-hidden">
+                                <div class="box">
+                                    <h4 class="title is-5">Processing Image</h4>
+                                    <progress id="progress-bar" class="progress is-primary" value="0" max="100">0%</progress>
+                                    <p id="status-message" class="has-text-centered">Initializing...</p>
+                                </div>
+                            </div>
+
+                            <!-- Image Preview -->
+                            <div id="image-preview-container" class="box is-hidden">
+                                <div class="level">
+                                    <div class="level-left">
+                                        <h4 class="title is-5">Uploaded Image</h4>
+                                    </div>
+                                    <div class="level-right">
+                                        <button id="replace-image-btn" class="button is-small is-info">
+                                            <span class="icon">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </span>
+                                             <span>Select Another Image</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="has-text-centered">
+                                    <img id="image-preview" class="preview-image">
+                                </div>
+                            </div>
+
+                            <!-- Text Result Section -->
+                            <div id="text-result-container" class="box is-hidden">
+                                <div class="level">
+                                    <div class="level-left">
+                                        <h4 class="title is-5">Extracted Text</h4>
+                                    </div>
+                                    <div class="level-right">
+                                        <div class="buttons">
+                                            <button id="copy-btn" class="button is-small">
+                                                <span class="icon">
+                                                    <i class="fas fa-copy"></i>
+                                                </span>
+                                                <span>Copy</span>
+                                            </button>
+                                            <button id="download-btn" class="button is-small">
+                                                <span class="icon">
+                                                    <i class="fas fa-download"></i>
+                                                </span>
+                                                <span>Download</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="text-result" class="content extracted-text" contenteditable="true">
+                                    <p class="has-text-grey-light">Extracted text will appear here...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Elements
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const uploadContainer = document.getElementById('upload-container');
+            const processingUI = document.getElementById('processing-ui');
+            const imagePreviewContainer = document.getElementById('image-preview-container');
+            const imagePreview = document.getElementById('image-preview');
+            const textResultContainer = document.getElementById('text-result-container');
+            const textResult = document.getElementById('text-result');
+            const statusMessage = document.getElementById('status-message');
+            const progressBar = document.getElementById('progress-bar');
+            const copyBtn = document.getElementById('copy-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const replaceImageBtn = document.getElementById('replace-image-btn');
+
+            // Handle file selection
+            fileInput.addEventListener('change', handleFileSelect);
+            replaceImageBtn.addEventListener('click', () => fileInput.click());
+
+            // Drag and drop handlers
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('has-background-primary');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('has-background-primary');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('has-background-primary');
+                if (e.dataTransfer.files.length) {
+                    fileInput.files = e.dataTransfer.files;
+                    handleFileSelect({ target: fileInput });
+                }
+            });
+
+            // Copy button handler
+            copyBtn.addEventListener('click', () => {
+                const text = textResult.textContent;
+                navigator.clipboard.writeText(text).then(() => {
+                    showNotification('Text copied to clipboard!', 'is-success');
+                });
+            });
+
+            // Download button handler
+            downloadBtn.addEventListener('click', () => {
+                const text = textResult.textContent;
+                const blob = new Blob([text], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'extracted-text.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            });
+
+            // Handle file processing
+            function handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                // Check if file is an image
+                if (!file.type.match('image.*')) {
+                    showNotification('Please select an image file', 'is-danger');
+                    return;
+                }
+
+                // Display preview
+                imagePreview.src = URL.createObjectURL(file);
+                
+                // Reset UI
+                textResult.innerHTML = '<p class="has-text-grey-light">Extracting text...</p>';
+                statusMessage.textContent = 'Initializing...';
+                progressBar.value = 0;
+                
+                // Show processing UI
+                uploadContainer.classList.add('is-hidden');
+                processingUI.classList.remove('is-hidden');
+                imagePreviewContainer.classList.add('is-hidden');
+                textResultContainer.classList.add('is-hidden');
+
+                // Create FormData and send to server
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // Create AJAX request
+                const xhr = new XMLHttpRequest();
+                
+                // Upload progress
+                xhr.upload.onprogress = (e) => {
+                    if (e.lengthComputable) {
+                        const percentComplete = Math.round((e.loaded / e.total) * 50);
+                        progressBar.value = percentComplete;
+                        statusMessage.textContent = `Uploading: ${percentComplete}%`;
+                    }
+                };
+
+                // Processing progress (simulated)
+                const progressInterval = setInterval(() => {
+                    if (progressBar.value >= 50 && progressBar.value < 90) {
+                        progressBar.value += 5;
+                        statusMessage.textContent = `Processing: ${progressBar.value}%`;
+                    }
+                }, 300);
+
+                xhr.onload = () => {
+                    clearInterval(progressInterval);
+                    
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        progressBar.value = 100;
+                        statusMessage.textContent = 'Processing complete!';
+                        
+                        // Display results
+                        if (response.text.trim()) {
+                            textResult.innerHTML = response.text.replace(/\n/g, '<br>');
+                        } else {
+                            textResult.innerHTML = '<p class="has-text-danger">No text could be extracted from this image.</p>';
+                        }
+                        
+                        // Show results
+                        processingUI.classList.add('is-hidden');
+                        imagePreviewContainer.classList.remove('is-hidden');
+                        textResultContainer.classList.remove('is-hidden');
+                        
+                        // Scroll to results
+                        textResultContainer.scrollIntoView({ behavior: 'smooth' });
+                        
+                        showNotification('Text extraction completed!', 'is-success');
+                    } else {
+                        const error = JSON.parse(xhr.responseText).error || 'Unknown error occurred';
+                        statusMessage.textContent = 'Error: ' + error;
+                        progressBar.classList.add('is-danger');
+                        showNotification('Error: ' + error, 'is-danger');
+                        uploadContainer.classList.remove('is-hidden');
+                        processingUI.classList.add('is-hidden');
+                    }
+                };
+
+                xhr.onerror = () => {
+                    clearInterval(progressInterval);
+                    statusMessage.textContent = 'Request failed. Please try again.';
+                    progressBar.classList.add('is-danger');
+                    showNotification('Request failed. Please try again.', 'is-danger');
+                    uploadContainer.classList.remove('is-hidden');
+                    processingUI.classList.add('is-hidden');
+                };
+
+                xhr.open('POST', '/upload', true);
+                xhr.send(formData);
+            }
+
+            // Notification function
+            function showNotification(message, type = 'is-info') {
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.innerHTML = `
+                    <button class="delete"></button>
+                    ${message}
+                `;
+                document.body.appendChild(notification);
+                
+                // Position the notification
+                notification.style.position = 'fixed';
+                notification.style.bottom = '20px';
+                notification.style.right = '20px';
+                notification.style.zIndex = '1000';
+                notification.style.maxWidth = '400px';
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    setTimeout(() => notification.remove(), 300);
+                }, 5000);
+                
+                // Close button
+                notification.querySelector('.delete').addEventListener('click', () => {
+                    notification.remove();
+                });
+            }
+        });
+    </script>
+</body>
+</html>
