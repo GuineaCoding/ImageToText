@@ -31,7 +31,7 @@
                 <div class="column is-two-thirds">
                     <div class="card">
                         <div class="card-content">
-                            <!-- Upload Section -->
+                            <!-- Upload Section (Always visible at top) -->
                             <div id="upload-container" class="has-text-centered">
                                 <div id="drop-zone" class="box has-background-primary-light">
                                     <span class="icon is-large">
@@ -58,27 +58,6 @@
                                 </div>
                             </div>
 
-                            <!-- Image Preview -->
-                            <div id="image-preview-container" class="box is-hidden">
-                                <div class="level">
-                                    <div class="level-left">
-                                        <h4 class="title is-5">Uploaded Image</h4>
-                                    </div>
-                                    <div class="level-right">
-                                        <button id="replace-image-btn" class="button is-small is-info">
-                                            <span class="icon">
-                                                <i class="fas fa-sync-alt"></i>
-                                            </span>
-                                             <span>Select Another Image</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="has-text-centered">
-                                    <img id="image-preview" class="preview-image">
-                                </div>
-                            </div>
-
-                            <!-- Text Result Section -->
                             <div id="text-result-container" class="box is-hidden">
                                 <div class="level">
                                     <div class="level-left">
@@ -103,6 +82,25 @@
                                 </div>
                                 <div id="text-result" class="content extracted-text" contenteditable="true">
                                     <p class="has-text-grey-light">Extracted text will appear here...</p>
+                                </div>
+                            </div>
+
+                            <div id="image-preview-container" class="box is-hidden">
+                                <div class="level">
+                                    <div class="level-left">
+                                        <h4 class="title is-5">Uploaded Image</h4>
+                                    </div>
+                                    <div class="level-right">
+                                        <button id="replace-image-btn" class="button is-small is-info">
+                                            <span class="icon">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </span>
+                                            <span>Another Image</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="has-text-centered">
+                                    <img id="image-preview" class="preview-image">
                                 </div>
                             </div>
                         </div>
@@ -194,7 +192,6 @@
                 progressBar.value = 0;
                 
                 // Show processing UI
-                uploadContainer.classList.add('is-hidden');
                 processingUI.classList.remove('is-hidden');
                 imagePreviewContainer.classList.add('is-hidden');
                 textResultContainer.classList.add('is-hidden');
@@ -240,8 +237,8 @@
                         
                         // Show results
                         processingUI.classList.add('is-hidden');
-                        imagePreviewContainer.classList.remove('is-hidden');
                         textResultContainer.classList.remove('is-hidden');
+                        imagePreviewContainer.classList.remove('is-hidden');
                         
                         // Scroll to results
                         textResultContainer.scrollIntoView({ behavior: 'smooth' });
@@ -252,7 +249,6 @@
                         statusMessage.textContent = 'Error: ' + error;
                         progressBar.classList.add('is-danger');
                         showNotification('Error: ' + error, 'is-danger');
-                        uploadContainer.classList.remove('is-hidden');
                         processingUI.classList.add('is-hidden');
                     }
                 };
@@ -262,7 +258,6 @@
                     statusMessage.textContent = 'Request failed. Please try again.';
                     progressBar.classList.add('is-danger');
                     showNotification('Request failed. Please try again.', 'is-danger');
-                    uploadContainer.classList.remove('is-hidden');
                     processingUI.classList.add('is-hidden');
                 };
 
