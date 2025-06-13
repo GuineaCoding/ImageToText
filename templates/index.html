@@ -85,6 +85,40 @@
                                 </div>
                             </div>
 
+                            <!-- Google Translate Section -->
+                            <div id="translate-container" class="box is-hidden">
+                                <div class="level">
+                                    <div class="level-left">
+                                        <h4 class="title is-5">Translate Text</h4>
+                                    </div>
+                                    <div class="level-right">
+                                        <div class="select">
+                                            <select id="language-select">
+                                                <option value="en">English</option>
+                                                <option value="es">Spanish</option>
+                                                <option value="fr">French</option>
+                                                <option value="de">German</option>
+                                                <option value="it">Italian</option>
+                                                <option value="pt">Portuguese</option>
+                                                <option value="ru">Russian</option>
+                                                <option value="zh-CN">Chinese</option>
+                                                <option value="ja">Japanese</option>
+                                                <option value="ar">Arabic</option>
+                                            </select>
+                                        </div>
+                                        <button id="translate-btn" class="button is-small is-info ml-2">
+                                            <span class="icon">
+                                                <i class="fas fa-language"></i>
+                                            </span>
+                                            <span>Translate</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="translation-result" class="content translated-text">
+                                    <p class="has-text-grey-light">Translation will appear here...</p>
+                                </div>
+                            </div>
+
                             <div id="image-preview-container" class="box is-hidden">
                                 <div class="level">
                                     <div class="level-left">
@@ -121,6 +155,10 @@
             const imagePreview = document.getElementById('image-preview');
             const textResultContainer = document.getElementById('text-result-container');
             const textResult = document.getElementById('text-result');
+            const translateContainer = document.getElementById('translate-container');
+            const translateBtn = document.getElementById('translate-btn');
+            const languageSelect = document.getElementById('language-select');
+            const translationResult = document.getElementById('translation-result');
             const statusMessage = document.getElementById('status-message');
             const progressBar = document.getElementById('progress-bar');
             const copyBtn = document.getElementById('copy-btn');
@@ -130,6 +168,9 @@
             // Handle file selection
             fileInput.addEventListener('change', handleFileSelect);
             replaceImageBtn.addEventListener('click', () => fileInput.click());
+
+            // Translate button handler
+            translateBtn.addEventListener('click', translateText);
 
             // Drag and drop handlers
             dropZone.addEventListener('dragover', (e) => {
@@ -188,6 +229,7 @@
                 
                 // Reset UI
                 textResult.innerHTML = '<p class="has-text-grey-light">Extracting text...</p>';
+                translationResult.innerHTML = '<p class="has-text-grey-light">Translation will appear here...</p>';
                 statusMessage.textContent = 'Initializing...';
                 progressBar.value = 0;
                 
@@ -195,6 +237,7 @@
                 processingUI.classList.remove('is-hidden');
                 imagePreviewContainer.classList.add('is-hidden');
                 textResultContainer.classList.add('is-hidden');
+                translateContainer.classList.add('is-hidden');
 
                 // Create FormData and send to server
                 const formData = new FormData();
@@ -238,6 +281,7 @@
                         // Show results
                         processingUI.classList.add('is-hidden');
                         textResultContainer.classList.remove('is-hidden');
+                        translateContainer.classList.remove('is-hidden');
                         imagePreviewContainer.classList.remove('is-hidden');
                         
                         // Scroll to results
@@ -263,6 +307,30 @@
 
                 xhr.open('POST', '/upload', true);
                 xhr.send(formData);
+            }
+
+            // Translate text using Google Translate API
+            function translateText() {
+                const text = textResult.textContent;
+                const targetLang = languageSelect.value;
+                
+                if (!text.trim()) {
+                    showNotification('No text to translate', 'is-warning');
+                    return;
+                }
+
+                translationResult.innerHTML = '<p class="has-text-grey-light">Translating...</p>';
+                
+               
+                setTimeout(() => {
+                    translationResult.innerHTML = `
+                        <p><strong>Mock Translation (${targetLang}):</strong></p>
+                        <p>${text} [translated to ${languageSelect.options[languageSelect.selectedIndex].text}]</p>
+                        <p class="has-text-grey is-size-7">Note: This is a mock translation. Implement Google Cloud Translation API for real translations.</p>
+                    `;
+                }, 1000);
+                
+                showNotification('Translation in progress...', 'is-info');
             }
 
             // Notification function
