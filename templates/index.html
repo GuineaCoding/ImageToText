@@ -31,7 +31,7 @@
                 <div class="column is-two-thirds">
                     <div class="card">
                         <div class="card-content">
-                            <!-- Upload Section (Always visible at top) -->
+                            <!-- Upload Section (Initially visible, hidden after processing) -->
                             <div id="upload-container" class="has-text-centered">
                                 <div id="drop-zone" class="box has-background-primary-light">
                                     <span class="icon is-large">
@@ -55,6 +55,25 @@
                                     <h4 class="title is-5">Processing Image</h4>
                                     <progress id="progress-bar" class="progress is-primary" value="0" max="100">0%</progress>
                                     <p id="status-message" class="has-text-centered">Initializing...</p>
+                                </div>
+                            </div>
+
+                                                        <div id="image-preview-container" class="box is-hidden">
+                                <div class="level">
+                                    <div class="level-left">
+                                        <h4 class="title is-5">Uploaded Image</h4>
+                                    </div>
+                                    <div class="level-right">
+                                        <button id="replace-image-btn" class="button is-small is-info">
+                                            <span class="icon">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </span>
+                                            <span>Another Image</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="has-text-centered">
+                                    <img id="image-preview" class="preview-image">
                                 </div>
                             </div>
 
@@ -118,25 +137,6 @@
                                     <p class="has-text-grey-light">Translation will appear here...</p>
                                 </div>
                             </div>
-
-                            <div id="image-preview-container" class="box is-hidden">
-                                <div class="level">
-                                    <div class="level-left">
-                                        <h4 class="title is-5">Uploaded Image</h4>
-                                    </div>
-                                    <div class="level-right">
-                                        <button id="replace-image-btn" class="button is-small is-info">
-                                            <span class="icon">
-                                                <i class="fas fa-sync-alt"></i>
-                                            </span>
-                                            <span>Another Image</span>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="has-text-centered">
-                                    <img id="image-preview" class="preview-image">
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -167,7 +167,7 @@
 
             // Handle file selection
             fileInput.addEventListener('change', handleFileSelect);
-            replaceImageBtn.addEventListener('click', () => fileInput.click());
+            replaceImageBtn.addEventListener('click', resetToUpload);
 
             // Translate button handler
             translateBtn.addEventListener('click', translateText);
@@ -213,6 +213,30 @@
                 URL.revokeObjectURL(url);
             });
 
+            // Reset to upload state
+            function resetToUpload() {
+                // Clear file input
+                fileInput.value = '';
+                
+                // Hide all result containers
+                imagePreviewContainer.classList.add('is-hidden');
+                textResultContainer.classList.add('is-hidden');
+                translateContainer.classList.add('is-hidden');
+                processingUI.classList.add('is-hidden');
+                
+                // Show upload container
+                uploadContainer.classList.remove('is-hidden');
+                
+                // Clear preview and results
+                imagePreview.src = '';
+                textResult.innerHTML = '<p class="has-text-grey-light">Extracted text will appear here...</p>';
+                translationResult.innerHTML = '<p class="has-text-grey-light">Translation will appear here...</p>';
+                
+                // Reset progress bar
+                progressBar.value = 0;
+                progressBar.classList.remove('is-danger');
+            }
+
             // Handle file processing
             function handleFileSelect(event) {
                 const file = event.target.files[0];
@@ -224,6 +248,10 @@
                     return;
                 }
 
+                // Hide upload container and show processing
+                uploadContainer.classList.add('is-hidden');
+                processingUI.classList.remove('is-hidden');
+
                 // Display preview
                 imagePreview.src = URL.createObjectURL(file);
                 
@@ -233,8 +261,7 @@
                 statusMessage.textContent = 'Initializing...';
                 progressBar.value = 0;
                 
-                // Show processing UI
-                processingUI.classList.remove('is-hidden');
+                // Hide result containers during processing
                 imagePreviewContainer.classList.add('is-hidden');
                 textResultContainer.classList.add('is-hidden');
                 translateContainer.classList.add('is-hidden');
@@ -278,7 +305,7 @@
                             textResult.innerHTML = '<p class="has-text-danger">No text could be extracted from this image.</p>';
                         }
                         
-                        // Show results
+                        // Show results and hide processing
                         processingUI.classList.add('is-hidden');
                         textResultContainer.classList.remove('is-hidden');
                         translateContainer.classList.remove('is-hidden');
@@ -294,6 +321,8 @@
                         progressBar.classList.add('is-danger');
                         showNotification('Error: ' + error, 'is-danger');
                         processingUI.classList.add('is-hidden');
+                        // Show upload container again on error
+                        uploadContainer.classList.remove('is-hidden');
                     }
                 };
 
@@ -303,6 +332,8 @@
                     progressBar.classList.add('is-danger');
                     showNotification('Request failed. Please try again.', 'is-danger');
                     processingUI.classList.add('is-hidden');
+                    // Show upload container again on error
+                    uploadContainer.classList.remove('is-hidden');
                 };
 
                 xhr.open('POST', '/upload', true);
