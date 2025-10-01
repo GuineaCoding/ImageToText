@@ -1,45 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Image Text Extractor</title>
-    <!-- Bulma CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-</head>
+{% include "_head.html" %}
 <body>
     <!-- Navigation Bar -->
-    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
-        <div class="container">
-            <div class="navbar-brand">
-                <a class="navbar-item" href="/">
-                    <i class="fas fa-text-height"></i>
-                    <strong class="ml-2">TextExtract Pro</strong>
-                </a>
-            </div>
-
-            <div class="navbar-menu">
-                <div class="navbar-end">
-                    <a class="navbar-item" href="/">
-                        <span class="icon">
-                            <i class="fas fa-home"></i>
-                        </span>
-                        <span>Home</span>
-                    </a>
-                    <a class="navbar-item" href="/about">
-                        <span class="icon">
-                            <i class="fas fa-info-circle"></i>
-                        </span>
-                        <span>About</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+    {% include "_navbar.html" %}
 
     <!-- Hero Section -->
     <section class="hero is-primary is-bold">
@@ -180,15 +144,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
-        <div class="content has-text-centered">
-          <p>
-   <strong>TextExtract Pro</strong> by <strong>Andrian B</strong>. 
-   Uses Flask, Pillow, and Tesseract (see their licenses).
-</p>
-        </div>
-    </footer>
-
+{% include "_footer.html" %}
     <script>
         // Your existing JavaScript code remains exactly the same
         document.addEventListener('DOMContentLoaded', () => {
