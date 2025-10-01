@@ -12,20 +12,55 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
+    <!-- Navigation Bar -->
+    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item" href="/">
+                    <i class="fas fa-text-height"></i>
+                    <strong class="ml-2">TextExtract Pro</strong>
+                </a>
+            </div>
+
+            <div class="navbar-menu">
+                <div class="navbar-end">
+                    <a class="navbar-item" href="/">
+                        <span class="icon">
+                            <i class="fas fa-home"></i>
+                        </span>
+                        <span>Home</span>
+                    </a>
+                    <a class="navbar-item" href="/about">
+                        <span class="icon">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                        <span>About</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
     <section class="hero is-primary is-bold">
         <div class="hero-body">
-            <div class="container">
-                <h1 class="title">
-                    <i class="fas fa-text-height"></i> Text Extractor
+            <div class="container has-text-centered">
+                <h1 class="title is-1">
+                    <i class="fas fa-text-height"></i> TextExtract Pro
                 </h1>
-                <h2 class="subtitle">
-                    Upload an image to extract text
+                <h2 class="subtitle is-4">
+                    Extract Text from Images Instantly with AI-Powered OCR
                 </h2>
+                <div class="tags is-centered">
+                    <span class="tag is-light">Fast</span>
+                    <span class="tag is-light">Accurate</span>
+                    <span class="tag is-light">Free</span>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="section">
+    <section class="section min-height">
         <div class="container">
             <div class="columns is-centered">
                 <div class="column is-two-thirds">
@@ -58,7 +93,7 @@
                                 </div>
                             </div>
 
-                                                        <div id="image-preview-container" class="box is-hidden">
+                            <div id="image-preview-container" class="box is-hidden">
                                 <div class="level">
                                     <div class="level-left">
                                         <h4 class="title is-5">Uploaded Image</h4>
@@ -144,7 +179,18 @@
         </div>
     </section>
 
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="content has-text-centered">
+          <p>
+   <strong>TextExtract Pro</strong> by <strong>Andrian B</strong>. 
+   Uses Flask, Pillow, and Tesseract (see their licenses).
+</p>
+        </div>
+    </footer>
+
     <script>
+        // Your existing JavaScript code remains exactly the same
         document.addEventListener('DOMContentLoaded', () => {
             // Elements
             const dropZone = document.getElementById('drop-zone');
