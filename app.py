@@ -4,6 +4,7 @@ import io
 import os
 import sys
 import subprocess
+import shutil
 
 app = Flask(__name__)
 
@@ -11,48 +12,75 @@ app = Flask(__name__)
 try:
     import pytesseract
     TESSERACT_AVAILABLE = True
-except ImportError:
+    print("✓ pytesseract imported successfully")
+except ImportError as e:
     TESSERACT_AVAILABLE = False
+    print(f"✗ pytesseract import failed: {e}")
 
-def find_tesseract():
-    """Find tesseract executable path"""
-    possible_paths = [
-        '/usr/bin/tesseract',
-        '/usr/local/bin/tesseract', 
-        '/app/.apt/usr/bin/tesseract',
-        '/usr/bin/tesseract'  # Render path
-    ]
-    for path in possible_paths:
-        if os.path.exists(path):
-            print(f"Found tesseract at: {path}")
-            return path
-    print("Tesseract not found in any standard paths")
-    return None
-
-def setup_tesseract():
-    """Setup tesseract path and verify it works"""
-    if not TESSERACT_AVAILABLE:
-        return False
-        
-    tesseract_path = find_tesseract()
-    if tesseract_path:
-        pytesseract.pytesseract.tesseract_cmd = tesseract_path
-        try:
-            # Test if tesseract works
-            result = subprocess.run([tesseract_path, '--version'], 
-                                  capture_output=True, text=True, timeout=10)
-            if result.returncode == 0:
-                print(f"Tesseract is working: {result.stdout.strip()}")
-                return True
-            else:
-                print(f"Tesseract test failed: {result.stderr}")
-        except Exception as e:
-            print(f"Tesseract test error: {e}")
+def diagnose_tesseract():
+    """Comprehensive tesseract diagnosis"""
+    diagnostics = {
+        'pytesseract_available': TESSERACT_AVAILABLE,
+        'tesseract_found': False,
+        'tesseract_version': None,
+        'tesseract_path': None,
+        'error': None
+    }
     
-    return False
+    if not TESSERACT_AVAILABLE:
+        diagnostics['error'] = 'pytesseract not available'
+        return diagnostics
+    
+    # Method 1: Try to find tesseract using shutil.which
+    tesseract_path = shutil.which('tesseract')
+    if not tesseract_path:
+        # Method 2: Check common paths
+        common_paths = [
+            '/usr/bin/tesseract',
+            '/usr/local/bin/tesseract',
+            '/app/.apt/usr/bin/tesseract',
+            '/opt/homebrew/bin/tesseract'  # macOS
+        ]
+        for path in common_paths:
+            if os.path.exists(path):
+                tesseract_path = path
+                break
+    
+    if not tesseract_path:
+        diagnostics['error'] = 'Tesseract not found in PATH or common locations'
+        return diagnostics
+    
+    diagnostics['tesseract_path'] = tesseract_path
+    diagnostics['tesseract_found'] = True
+    
+    # Try to get version
+    try:
+        result = subprocess.run([tesseract_path, '--version'], 
+                              capture_output=True, text=True, timeout=10)
+        if result.returncode == 0:
+            diagnostics['tesseract_version'] = result.stdout.strip()
+            print(f"✓ Tesseract version: {result.stdout.strip()}")
+        else:
+            diagnostics['error'] = f"Version check failed: {result.stderr}"
+    except Exception as e:
+        diagnostics['error'] = f"Version check error: {str(e)}"
+    
+    return diagnostics
 
-# Setup tesseract on app start
-TESSERACT_WORKING = setup_tesseract()
+# Run diagnosis on startup
+print("=== Tesseract Diagnosis ===")
+diagnostics = diagnose_tesseract()
+for key, value in diagnostics.items():
+    print(f"{key}: {value}")
+
+# Set tesseract path if found
+if diagnostics['tesseract_found'] and not diagnostics.get('error'):
+    pytesseract.pytesseract.tesseract_cmd = diagnostics['tesseract_path']
+    TESSERACT_WORKING = True
+    print("✓ Tesseract configured successfully")
+else:
+    TESSERACT_WORKING = False
+    print("✗ Tesseract not working")
 
 @app.route('/')
 def index():
@@ -71,26 +99,32 @@ def upload():
     if file.filename == '':
         return jsonify({'error': 'No file selected'}), 400
     
-    # Check if Tesseract is available and working
-    if not TESSERACT_AVAILABLE:
-        return jsonify({'error': 'OCR engine not available. pytesseract not installed.'}), 500
-    
     if not TESSERACT_WORKING:
-        return jsonify({'error': 'Tesseract OCR is installed but not working properly. Please check server logs.'}), 500
+        return jsonify({
+            'error': 'Tesseract OCR is not working properly',
+            'diagnostics': diagnose_tesseract()
+        }), 500
     
     try:
-        # Open image
-        img = Image.open(io.BytesIO(file.read()))
+        # Open and validate image
+        file_bytes = file.read()
+        if not file_bytes:
+            return jsonify({'error': 'Empty file'}), 400
+            
+        img = Image.open(io.BytesIO(file_bytes))
         
-        # Convert image to RGB if necessary
-        if img.mode != 'RGB':
+        # Convert image to supported format
+        if img.mode in ('P', 'RGBA', 'LA'):
             img = img.convert('RGB')
         
-        # Perform OCR with configuration
-        custom_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?@#$%^&*()_+-=[]{}|;:,.<>?/~` '  
-        text = pytesseract.image_to_string(img, config=custom_config)
+        # Simple OCR without complex config first
+        try:
+            text = pytesseract.image_to_string(img)
+        except Exception as ocr_error:
+            # Try with basic config
+            text = pytesseract.image_to_string(img, config='--psm 3')
         
-        return jsonify({'text': text.strip()})
+        return jsonify({'text': text.strip() if text else ''})
     
     except Exception as e:
         app.logger.error(f"OCR Error: {str(e)}")
@@ -98,14 +132,55 @@ def upload():
 
 @app.route('/health')
 def health():
-    """Health check endpoint"""
-    status = {
-        'status': 'healthy' if TESSERACT_WORKING else 'unhealthy',
-        'tesseract_available': TESSERACT_AVAILABLE,
-        'tesseract_working': TESSERACT_WORKING,
-        'tesseract_path': find_tesseract() if TESSERACT_AVAILABLE else None
-    }
-    return jsonify(status)
+    """Comprehensive health check"""
+    diagnostics = diagnose_tesseract()
+    status = 'healthy' if TESSERACT_WORKING else 'unhealthy'
+    
+    return jsonify({
+        'status': status,
+        'service': 'TextExtract Pro',
+        'diagnostics': diagnostics
+    })
+
+@app.route('/test-ocr')
+def test_ocr():
+    """Test OCR with a simple built-in image"""
+    if not TESSERACT_WORKING:
+        return jsonify({'error': 'Tesseract not working', 'diagnostics': diagnose_tesseract()})
+    
+    try:
+        # Create a simple test image with text
+        from PIL import Image, ImageDraw, ImageFont
+        import tempfile
+        
+        # Create a test image
+        img = Image.new('RGB', (400, 100), color='white')
+        d = ImageDraw.Draw(img)
+        
+        # Try to use a basic font
+        try:
+            font = ImageFont.load_default()
+            d.text((10, 10), "Hello World! Test 123", fill='black', font=font)
+        except:
+            # If font fails, just draw text without font
+            d.text((10, 10), "Hello World! Test 123", fill='black')
+        
+        # Perform OCR
+        text = pytesseract.image_to_string(img)
+        
+        return jsonify({
+            'success': True,
+            'extracted_text': text.strip(),
+            'expected_text': 'Hello World! Test 123',
+            'match': 'Hello World! Test 123' in text
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'diagnostics': diagnose_tesseract()
+        })
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
