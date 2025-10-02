@@ -293,40 +293,52 @@
                 }, 300);
 
                 xhr.onload = () => {
-                    clearInterval(progressInterval);
-                    
-                    if (xhr.status === 200) {
-                        const response = JSON.parse(xhr.responseText);
-                        progressBar.value = 100;
-                        statusMessage.textContent = 'Processing complete!';
-                        
-                        // Display results
-                        if (response.text.trim()) {
-                            textResult.innerHTML = response.text.replace(/\n/g, '<br>');
-                        } else {
-                            textResult.innerHTML = '<p class="has-text-danger">No text could be extracted from this image.</p>';
-                        }
-                        
-                        // Show results and hide processing
-                        processingUI.classList.add('is-hidden');
-                        textResultContainer.classList.remove('is-hidden');
-                        translateContainer.classList.remove('is-hidden');
-                        imagePreviewContainer.classList.remove('is-hidden');
-                        
-                        // Scroll to results
-                        textResultContainer.scrollIntoView({ behavior: 'smooth' });
-                        
-                        showNotification('Text extraction completed!', 'is-success');
-                    } else {
-                        const error = JSON.parse(xhr.responseText).error || 'Unknown error occurred';
-                        statusMessage.textContent = 'Error: ' + error;
-                        progressBar.classList.add('is-danger');
-                        showNotification('Error: ' + error, 'is-danger');
-                        processingUI.classList.add('is-hidden');
-                        // Show upload container again on error
-                        uploadContainer.classList.remove('is-hidden');
-                    }
-                };
+    clearInterval(progressInterval);
+    
+    try {
+        // Try to parse response as JSON
+        const response = JSON.parse(xhr.responseText);
+        
+        if (xhr.status === 200) {
+            progressBar.value = 100;
+            statusMessage.textContent = 'Processing complete!';
+            
+            // Display results
+            if (response.text && response.text.trim()) {
+                textResult.innerHTML = response.text.replace(/\n/g, '<br>');
+            } else {
+                textResult.innerHTML = '<p class="has-text-danger">No text could be extracted from this image.</p>';
+            }
+            
+            // Show results and hide processing
+            processingUI.classList.add('is-hidden');
+            textResultContainer.classList.remove('is-hidden');
+            translateContainer.classList.remove('is-hidden');
+            imagePreviewContainer.classList.remove('is-hidden');
+            
+            // Scroll to results
+            textResultContainer.scrollIntoView({ behavior: 'smooth' });
+            
+            showNotification('Text extraction completed!', 'is-success');
+        } else {
+            const error = response.error || 'Unknown error occurred';
+            statusMessage.textContent = 'Error: ' + error;
+            progressBar.classList.add('is-danger');
+            showNotification('Error: ' + error, 'is-danger');
+            processingUI.classList.add('is-hidden');
+            // check upload container again on error
+            uploadContainer.classList.remove('is-hidden');
+        }
+    } catch (e) {
+        // Handle non-JSON responses (HTML error pages)
+        console.error('Failed to parse response:', xhr.responseText);
+        statusMessage.textContent = 'Server error: Invalid response format';
+        progressBar.classList.add('is-danger');
+        showNotification('Server error occurred. Please try again.', 'is-danger');
+        processingUI.classList.add('is-hidden');
+        uploadContainer.classList.remove('is-hidden');
+    }
+};
 
                 xhr.onerror = () => {
                     clearInterval(progressInterval);
