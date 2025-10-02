@@ -7,22 +7,19 @@ import os
 
 app = Flask(__name__)
 
-# Set tesseract path for Docker environment
-pytesseract.pytesseract.tesseract_cmd = '/usr/bin/tesseract'
-
 # Test Tesseract on startup
 try:
     result = subprocess.run(['tesseract', '--version'], 
                           capture_output=True, text=True, timeout=10)
     if result.returncode == 0:
-        print("✅ Tesseract is working!")
+        print("Tesseract is working!")
         print(f"Version: {result.stdout.strip()}")
         TESSERACT_WORKING = True
     else:
-        print(f"❌ Tesseract failed: {result.stderr}")
+        print(f"Tesseract failed: {result.stderr}")
         TESSERACT_WORKING = False
 except Exception as e:
-    print(f"❌ Tesseract error: {e}")
+    print(f"Tesseract error: {e}")
     TESSERACT_WORKING = False
 
 @app.route('/')
